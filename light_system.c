@@ -4,17 +4,42 @@
 #define LED_BASE 0xFF200000
 #define SW_BASE 0xFF200040
 #define KEY_BASE 0xFF200050
+#define HEX_BASE 0xFF200020
+
 
 /* Global State Variables */
 int occupancy_count = 0;
 int current_light_state = 0; // 0 = OFF, 1 = ON
 int first_sensor = 0;
 
+// Active-low segment encoding for digits 0-9
+const int seg7[] = {
+    0x40, // 0
+    0x79, // 1
+    0x24, // 2
+    0x30, // 3
+    0x19, // 4
+    0x12, // 5
+    0x02, // 6
+    0x78, // 7
+    0x00, // 8
+    0x10  // 9
+};
+
+void update_display() {
+    volatile int *hex_ptr = (int *)HEX_BASE;
+    int tens = (occupancy_count / 10) % 10;
+    int ones = occupancy_count % 10;
+    *hex_ptr = (seg7[tens] << 8) | seg7[ones]; // HEX1 = tens, HEX0 = ones
+}
+
 void update_hardware()
 {
     volatile int *led_ptr = (int *)LED_BASE;
     *led_ptr = current_light_state; // Sets LEDR0 based on the toggled state
+     update_display(); // add this line
 }
+
 
 int main(void)
 {
@@ -88,6 +113,7 @@ int main(void)
         last_key_state = current_key;
 
         update_hardware();
+
     }
     return 0;
 }
